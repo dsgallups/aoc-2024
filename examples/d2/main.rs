@@ -27,18 +27,75 @@ fn p1() {
     println!("num safe: {num_safe}")
 }
 
+//ok if some, contains direction
+fn check(ahead: i32, behind: i32) -> Option<bool> {
+    (1..=3)
+        .contains(&(ahead - behind).abs())
+        .then_some(ahead > behind)
+}
+
 fn p2() {
     let input = include_bytes!("input.txt");
-
     let num_safe: u32 = input
         .lines()
         .map(|line| {
             let line = line.unwrap();
-            let mut values = line.split(' ').map(|v| v.parse::<i32>().unwrap());
+            let values = line
+                .split(' ')
+                .map(|v| v.parse::<i32>().unwrap())
+                .collect::<Vec<_>>();
 
-            let checker = checker(&mut values);
+            let mut acc = 0;
 
-            if checker(&mut values) {
+            let mut windows = values.as_slice().windows(3);
+
+            while let Some(v) = windows.next() {
+                let behind = v[0];
+                let cur = v[1];
+                let next = v[2];
+
+                print!("{behind},{cur},{next} - into ");
+
+                match check(cur, behind) {
+                    Some(asc) => match (check(next, behind), check(next, cur)) {
+                        (Some(asc_nb), _) => {
+                            println!("1");
+                            if asc != asc_nb {
+                                acc += 1;
+                            }
+                        }
+                        (None, Some(_)) => {
+                            println!("2.1");
+                            //acc += 1;
+                        }
+                        (None, None) => {
+                            println!("2.2");
+                            acc += 1;
+                        }
+                    },
+                    None => match (check(next, behind), check(next, cur)) {
+                        (Some(_), _) => {
+                            println!("3");
+                            acc += 1;
+                        }
+
+                        (None, Some(_)) => {
+                            println!("4.1");
+                            acc += 2;
+                            break;
+                        }
+                        (None, None) => {
+                            println!("4.2");
+                            acc += 2;
+                            break;
+                        }
+                    },
+                }
+
+                println!("{behind},{cur},{next}, {acc}");
+            }
+            println!("{line}: {acc}");
+            if acc < 2 {
                 1
             } else {
                 0
@@ -48,46 +105,6 @@ fn p2() {
 
     println!("num safe p2: {num_safe}")
 }
-
-fn checker<Tail>(iter: &mut impl Iterator<Item = i32>) -> Box<dyn Fn(&mut Tail) -> bool>
-where
-    Tail: Iterator<Item = i32>,
-{
-    let mut prev = iter.next().unwrap();
-    let mut cur = iter.next().unwrap();
-    let mut err_count = 0;
-    let diff_ok = |cur: i32, prev: i32| (1..=3).contains(&(cur - prev).abs());
-    if !diff_ok(cur, prev) {
-        err_count += 1;
-        let next = iter.next().unwrap();
-        //check if it's the first or second that's the problem
-        if diff_ok(next, prev) {
-            cur = next;
-        } else if diff_ok(next, cur) {
-            prev = cur;
-        } else {
-            return Box::new(|_| false);
-        }
-    }
-    let asc = prev < cur;
-
-    Box::new(move |i| {
-        let mut prev = cur;
-        let mut errs = err_count;
-        for cur in i {
-            if (prev < cur) == asc && (1..=3).contains(&(cur - prev).abs()) {
-                prev = cur;
-            } else {
-                errs += 1;
-            }
-            if errs > 1 {
-                return false;
-            }
-        }
-        true
-    })
-}
-
 fn main() {
     p1();
     p2();
