@@ -48,7 +48,7 @@ fn p2() {
             let mut acc = 0;
 
             let mut windows = values.as_slice().windows(3);
-
+            #[allow(clippy::while_let_on_iterator)]
             while let Some(v) = windows.next() {
                 let behind = v[0];
                 let cur = v[1];
